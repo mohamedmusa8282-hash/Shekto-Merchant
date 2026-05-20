@@ -58,7 +58,7 @@ def generate_pdf(bar_id, weight, sheshena, equiv_21, price_bank, price_cash):
     pdf.cell(0, 10, f"Total Value (Bank Transfer): {price_bank:,.0f} SDG", ln=True)
     if price_cash < price_bank:
         pdf.cell(0, 10, f"Total Value (Cash Deal): {price_cash:,.0f} SDG", ln=True)
-    return bytes(pdf.output())
+   return pdf.output(dest='S').encode('latin-1')
 
 # ==========================================
 # 1. إعدادات الصباح (القائمة الجانبية المخفية)
