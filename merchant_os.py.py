@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 from fpdf import FPDF
 from datetime import date
-import os
-import sqlite3 
+import sqlite3
 
 # ==========================================
 # 0. إعدادات الصفحة (هجومية وسريعة)
@@ -19,7 +18,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ==========================================
 # تهيئة قاعدة البيانات
+# ==========================================
 DB_MERCHANT = "shekto_merchant.db"
 def init_merchant_db():
     conn = sqlite3.connect(DB_MERCHANT)
@@ -32,7 +33,9 @@ def init_merchant_db():
 
 init_merchant_db()
 
-# دالة توليد PDF
+# ==========================================
+# دالة توليد PDF (مصححة التشفير والمسافات)
+# ==========================================
 class AssayPDF(FPDF):
     def footer(self):
         self.set_y(-40)
@@ -58,7 +61,9 @@ def generate_pdf(bar_id, weight, sheshena, equiv_21, price_bank, price_cash):
     pdf.cell(0, 10, f"Total Value (Bank Transfer): {price_bank:,.0f} SDG", ln=True)
     if price_cash < price_bank:
         pdf.cell(0, 10, f"Total Value (Cash Deal): {price_cash:,.0f} SDG", ln=True)
-   return pdf.output(dest='S').encode('latin-1')
+    
+    # السطر الذي تم تصحيحه وضبط مسافته بدقة
+    return pdf.output(dest='S').encode('latin-1')
 
 # ==========================================
 # 1. إعدادات الصباح (القائمة الجانبية المخفية)
@@ -86,18 +91,18 @@ gram_21k_sdg_bank = gram_21k_usd * usd_to_sdg
 gram_21k_sdg_cash = gram_21k_sdg_bank * (1 - (cash_discount_pct / 100))
 
 st.title("⚖️ Shekto Field OS")
+
 # ==========================================
 # 2. نظام التبويبات الميداني (Tabs)
 # ==========================================
 tab1, tab2, tab3 = st.tabs(["🧮 التقييم الميداني السريع", "💼 هندسة الصفقة والمحاصصة", "🗄️ الأرشيف والتقارير"])
 
 # ------------------------------------------
-# التبويب الأول: التقييم الميداني (يستخدم مع التاجر مباشرة)
+# التبويب الأول: التقييم الميداني
 # ------------------------------------------
 with tab1:
     st.subheader("فحص السبيكة وتسعيرها")
     
-    # التصفية السيادية
     smrc_status = st.checkbox("⚠️ خاضعة لخصم الدولة (SMRC)؟")
     smrc_pct = st.number_input("نسبة خصم SMRC (%)", value=15.0, step=1.0) if smrc_status else 0.0
 
@@ -107,17 +112,14 @@ with tab1:
     with col2:
         my_sheshena = st.number_input("أسهم الششنة (من 1000)", value=890.0, step=1.0)
 
-    # الرياضيات: تصفية الوزن
     net_gross_weight = gross_weight * (1 - (smrc_pct / 100))
     equiv_weight_21k = net_gross_weight * (my_sheshena / 875.0)
     
-    # الرياضيات: التقييم النهائي
     total_bank_value = equiv_weight_21k * gram_21k_sdg_bank
     total_cash_value = equiv_weight_21k * gram_21k_sdg_cash
 
     st.markdown(f"**الوزن التجاري الصافي (عيار 21):** `{equiv_weight_21k:.2f} جرام`")
 
-    # الشرط الذكي: عرض السعر المزدوج أم الموحد
     if cash_discount_pct > 0:
         c_bank, c_cash = st.columns(2)
         with c_bank:
@@ -128,7 +130,6 @@ with tab1:
         st.markdown(f"<div class='big-bank'>السعر العادل الموحد<br>{total_bank_value:,.0f} جنيه</div>", unsafe_allow_html=True)
 
     st.divider()
-    # رادار التلاعب (يظهر فقط إذا كان هناك اختلاف)
     with st.expander("🕵️ رادار تلاعب معمل التاجر", expanded=False):
         merchant_sheshena = st.number_input("ششنة التاجر", value=my_sheshena, step=1.0)
         if merchant_sheshena < my_sheshena:
@@ -141,7 +142,7 @@ with tab1:
             st.info("⚖️ لا يوجد تلاعب. الششنة متطابقة.")
 
 # ------------------------------------------
-# التبويب الثاني: هندسة الصفقة (عمولتك والمحاصصة)
+# التبويب الثاني: هندسة الصفقة
 # ------------------------------------------
 with tab2:
     st.subheader("توزيع الكاش (المحاصصة)")
@@ -149,7 +150,6 @@ with tab2:
     deal_base_value = total_cash_value if cash_discount_pct > 0 else total_bank_value
     st.info(f"إجمالي قيمة الصفقة المعتمدة للتوزيع: **{deal_base_value:,.0f} جنيه**")
     
-    # عمولتك الفورية
     st.markdown("#### 🕵️‍♂️ عمولة الوسيط (كاش فوري)")
     broker_pct = st.number_input("نسبة عمولتك كمهندس صفقة (%)", value=1.0, step=0.5)
     broker_cut = deal_base_value * (broker_pct / 100)
