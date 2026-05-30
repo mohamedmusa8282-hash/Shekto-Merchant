@@ -89,14 +89,13 @@ def generate_pdf(bar_id, supplier_name, mine_loc, weight, sheshena, equiv_21, pr
     if price_cash < price_bank:
         pdf.cell(0, 10, f"Total Value (Cash Deal): {price_cash:,.0f} SDG", ln=True)
     
-    # المعالجة الذكية لمخرجات PDF لتناسب إصدارات Streamlit Cloud القديمة والحديثة
+    # المعالجة الذكية لمخرجات PDF
     try:
         pdf_out = pdf.output(dest='S')
         if isinstance(pdf_out, str):
             return pdf_out.encode('latin-1', 'replace')
         return bytes(pdf_out)
     except Exception:
-        # كخط دفاع أخير للإصدارات الحديثة جداً
         return bytes(pdf.output())
 
 # ==========================================
@@ -216,6 +215,21 @@ with tab1:
         st.markdown(f"<div class='loss-font'>🚨 تحذير (3-Sigma): السعر المعروض شاذ جداً (فخ ششنة محتمل). انسحب!</div>", unsafe_allow_html=True)
     elif calculated_local_gram_price < moving_avg_local - (2 * std_dev_local):
         st.markdown("<div class='big-cash'>🎯 فرصة اقتناص (2-Sigma): السعر أدنى من المتوسط. فرصة شراء ممتازة.</div>", unsafe_allow_html=True)
+
+    # ------------------------------------------
+    # رادار تلاعب معمل التاجر (تمت إعادته بنجاح!)
+    # ------------------------------------------
+    st.divider()
+    with st.expander("🕵️ رادار تلاعب معمل التاجر (تأكيد الششنة)", expanded=True):
+        merchant_sheshena = st.number_input("ششنة التاجر", value=my_sheshena, step=1.0)
+        if merchant_sheshena < my_sheshena:
+            lost_shares = my_sheshena - merchant_sheshena
+            loss_sdg = (net_gross_weight * (lost_shares / 875.0)) * gram_21k_sdg_bank
+            st.markdown(f"<div class='loss-font'>🚨 التاجر خفض {lost_shares} أسهم. الخسارة: {loss_sdg:,.0f} جنيه!</div>", unsafe_allow_html=True)
+        elif merchant_sheshena > my_sheshena:
+            st.success("✅ تقييم التاجر أعلى من تقييمك (لصالحك).")
+        else:
+            st.info("⚖️ لا يوجد تلاعب. الششنة متطابقة.")
 
 # ------------------------------------------
 # التبويب الثاني: هندسة الصفقة
