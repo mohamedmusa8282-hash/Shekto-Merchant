@@ -54,7 +54,7 @@ def safe_pdf_string(text):
         return "Unknown"
 
 # ==========================================
-# دالة توليد PDF (مُحدّثة ومحمية)
+# دالة توليد PDF (مُحصنة ضد جميع الخوادم والإصدارات)
 # ==========================================
 class AssayPDF(FPDF):
     def footer(self):
@@ -89,7 +89,15 @@ def generate_pdf(bar_id, supplier_name, mine_loc, weight, sheshena, equiv_21, pr
     if price_cash < price_bank:
         pdf.cell(0, 10, f"Total Value (Cash Deal): {price_cash:,.0f} SDG", ln=True)
     
-    return bytes(pdf.output())
+    # المعالجة الذكية لمخرجات PDF لتناسب إصدارات Streamlit Cloud القديمة والحديثة
+    try:
+        pdf_out = pdf.output(dest='S')
+        if isinstance(pdf_out, str):
+            return pdf_out.encode('latin-1', 'replace')
+        return bytes(pdf_out)
+    except Exception:
+        # كخط دفاع أخير للإصدارات الحديثة جداً
+        return bytes(pdf.output())
 
 # ==========================================
 # 1. إعدادات الصباح (القائمة الجانبية المخفية)
@@ -145,7 +153,6 @@ with tab1:
     st.subheader("ملف المورد الجغرافي (KYC)")
     col_k1, col_k2 = st.columns(2)
     with col_k1:
-        # توجيه واضح لإدخال الاسم بالإنجليزية لسلامة الـ PDF
         supplier_name = st.text_input("اسم المورد (بالإنجليزية للطباعة)", placeholder="e.g. Ahmed El-Tahir")
     with col_k2:
         mine_location = st.selectbox("المنطقة الجغرافية / المنجم", list(MINE_TRANSLATOR.keys()))
@@ -163,7 +170,7 @@ with tab1:
         my_sheshena = st.number_input("أسهم الششنة (من 1000)", value=850.0, step=1.0)
 
     # ------------------------------------------
-    # رادار البصمة الجغرافية (Geographic Sheshena Radar)
+    # رادار البصمة الجغرافية
     # ------------------------------------------
     conn = sqlite3.connect(DB_MERCHANT)
     df_mines = pd.read_sql(f"SELECT Sheshena FROM merchant_history WHERE Mine_Location='{mine_location}'", conn)
